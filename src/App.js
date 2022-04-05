@@ -2,6 +2,7 @@ import "./App.css";
 import React from "react";
 import { ListGroup, Container, Form, Button, Alert } from "react-bootstrap";
 import ListItem from "./ListItem";
+import axios from "axios";
 
 class Todos extends React.Component {
   constructor() {
@@ -11,52 +12,54 @@ class Todos extends React.Component {
       editing: false,
       editingIndex: null,
       notification: null,
-      todos: [
-        {
-          id: 3,
-          name: "die in a ditch somewhere",
-        },
-      ],
+      todos: [],
     };
+    this.apiUrl = "https://624c0b7171e21eebbcf93a9b.mockapi.io";
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleDelete = this.handleDelete.bind(this);
     this.handleUpdate = this.handleUpdate.bind(this);
-    this.alert = this.alert.bind(this)
+    this.editTodo = this.editTodo.bind(this)
+    this.alert = this.alert.bind(this);
   }
 
-  generateTodoId() {
-    const lastTodo = this.state.todos[this.state.todos.length - 1];
-    if (lastTodo) {
-      return lastTodo.id + 1;
-    }
-
-    return 1;
+  async componentDidMount() {
+    const todos = await axios.get(this.apiUrl + "/todos");
+    this.setState({
+      ...this.state,
+      todos: todos.data,
+    });
   }
 
-  handleSubmit() {
+  async handleSubmit() {
     const newTodo = {
       name: this.state.newTodo,
-      id: this.generateTodoId(),
     };
 
+    const response = await axios.post(this.apiUrl + "/todos", newTodo);
+    console.log(response);
+
     const todos = this.state.todos;
-    todos.push(newTodo);
+    todos.push(response.data);
 
     this.setState({
       todos: todos,
       newTodo: "",
     });
-    this.alert("New todo created!")
+
+    this.alert("New todo created!");
   }
 
-  handleDelete(index) {
+  async handleDelete(index) {
     const newTodos = this.state.todos;
+    const todo = this.state.todos[index]
     delete newTodos[index];
+    
+    await axios.delete(`${this.apiUrl}/todos/${todo.id}`);
     this.setState({
       ...this.state,
       todos: newTodos,
     });
-    this.alert('Todo deleted successfully!')
+    this.alert("Todo deleted successfully!");
   }
 
   handleUpdate(index) {
@@ -68,11 +71,12 @@ class Todos extends React.Component {
     });
   }
 
-  editTodo() {
+  async editTodo() {
     const todo = this.state.todos[this.state.editingIndex];
     todo.name = this.state.newTodo;
     const todos = this.state.todos;
     todos[this.state.editingIndex] = todo;
+    await axios.put(`${this.apiUrl}/todos/${todo.id}`, todo);
     this.setState({
       ...this.state,
       todos,
@@ -80,7 +84,7 @@ class Todos extends React.Component {
       newTodo: "",
       editingIndex: null,
     });
-    this.alert('Todo updated successfully!')
+    this.alert("Todo updated successfully!");
   }
 
   handleChange(event) {
